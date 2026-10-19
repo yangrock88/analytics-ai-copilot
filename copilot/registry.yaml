@@ -1,0 +1,97 @@
+# Governed semantic registry: the ONLY things the copilot is allowed to say.
+# Mirrors the dbt semantic layer in nyc-taxi-semantic-layer; if a metric
+# isn't here (and there), the copilot refuses rather than improvising.
+
+grain:
+  time_column: picked_up_at
+  month_column: pickup_month
+
+tables:
+  fct_trips: marts.fct_trips
+  dim_zones: marts.dim_zones
+
+metrics:
+  total_revenue:
+    description: "All-in trip revenue (fare + extras + taxes + tolls + tips)"
+    synonyms: [revenue, total revenue, trip revenue, bookings]
+    expr: "sum(t.total_amount)"
+    format: currency
+  fare_revenue:
+    description: "Metered fare revenue only, extras and tips excluded"
+    synonyms: [fare revenue, metered fare, base fare, fares]
+    expr: "sum(t.fare_amount)"
+    format: currency
+  total_trips:
+    description: "Count of valid trips"
+    synonyms: [trips, trip count, number of trips, how many trips, rides, volume]
+    expr: "count(*)"
+    format: integer
+  average_fare:
+    description: "Metered fare per trip"
+    synonyms: [average fare, avg fare, average trip cost]
+    expr: "sum(t.fare_amount) / nullif(count(*), 0)"
+    format: currency
+  revenue_per_trip:
+    description: "All-in revenue per trip"
+    synonyms: [revenue per trip, average revenue, avg ticket]
+    expr: "sum(t.total_amount) / nullif(count(*), 0)"
+    format: currency
+  card_tip_rate:
+    description: "Tips as a share of metered fare, card trips only (cash tips are never recorded)"
+    synonyms: [tip rate, tipping rate, tips, tip percentage, card tip rate]
+    expr: "sum(case when t.payment_type = 1 then t.tip_amount else 0 end) / nullif(sum(case when t.payment_type = 1 then t.fare_amount else 0 end), 0)"
+    format: percent
+  avg_tip:
+    description: "Average recorded tip per trip"
+    synonyms: [average tip, avg tip, average tip amount]
+    expr: "avg(t.tip_amount::double)"
+    format: currency
+  miles_per_trip:
+    description: "Average trip distance in miles"
+    synonyms: [average miles, miles per trip, trip length, average distance]
+    expr: "avg(t.trip_distance::double)"
+    format: number
+  avg_trip_minutes:
+    description: "Average trip duration in minutes"
+    synonyms: [trip duration, average minutes, average duration, trip time]
+    expr: "avg(t.trip_minutes::double)"
+    format: number
+
+dimensions:
+  pickup_month:
+    description: "Calendar month of pickup"
+    synonyms: [month, monthly, by month, per month, trend, over time]
+    expr: "t.pickup_month"
+  pickup_borough:
+    description: "Pickup borough (denormalized in the mart; no join needed)"
+    synonyms: [borough, boroughs, by borough, borough level]
+    expr: "t.pickup_borough"
+  pickup_zone:
+    description: "Pickup taxi zone"
+    synonyms: [zone, zones, neighborhood, neighborhoods, by zone]
+    expr: "t.pickup_zone"
+  payment_desc:
+    description: "Payment method"
+    synonyms: [payment, payments, payment type, by payment, payment method]
+    expr: "t.payment_desc"
+  pickup_hour:
+    description: "Hour of day of pickup (0-23)"
+    synonyms: [hour, hourly, by hour, hour of day]
+    expr: "t.pickup_hour"
+  pickup_weekday:
+    description: "Day of week of pickup"
+    synonyms: [weekday, day of week, by weekday, weekends]
+    expr: "t.pickup_weekday"
+
+filters:
+  pickup_borough:
+    column: "t.pickup_borough"
+    values: [Manhattan, Queens, Brooklyn, Bronx, Staten Island, EWR]
+  payment_desc:
+    column: "t.payment_desc"
+    values: [credit_card, cash, flex_fare, no_charge, dispute]
+
+policy:
+  default_limit: 500
+  max_limit: 1000
+  years: [2024]

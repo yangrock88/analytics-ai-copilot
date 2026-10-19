@@ -1,0 +1,6 @@
+duckdb>=1.0
+pandas>=2.2
+scikit-learn>=1.5
+pyyaml>=6.0
+streamlit>=1.36
+pytest>=8.0
